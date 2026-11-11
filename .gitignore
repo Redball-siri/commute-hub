@@ -1,0 +1,15 @@
+node_modules/
+dist/
+qa/
+outputs/
+.wrangler/
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.tar.gz
+public/qr-vendor.js
+public/calendar-vendor.js
+.DS_Store

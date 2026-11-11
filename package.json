@@ -1,0 +1,20 @@
+{
+  "name": "commute-hub",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "db:generate": "drizzle-kit generate",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/cloud.test.mjs tests/boarding.test.mjs tests/calendar.test.mjs tests/progress.test.mjs"
+  },
+  "dependencies": {
+    "drizzle-orm": "0.45.2",
+    "jsqr": "1.4.0",
+    "qrcode": "1.5.4",
+    "read-excel-file": "^9.3.14"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "esbuild": "^0.25.0"
+  }
+}

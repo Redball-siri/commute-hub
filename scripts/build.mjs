@@ -1,0 +1,13 @@
+import {build} from 'esbuild';
+import fs from 'node:fs';
+const manifest=JSON.parse(fs.readFileSync('.openai/hosting.json','utf8'));
+if(manifest.static)throw Error('Worker manifest must not declare static');
+await build({entryPoints:['scripts/qr-vendor.mjs'],bundle:true,minify:true,format:'iife',platform:'browser',outfile:'public/qr-vendor.js',legalComments:'none'});
+await build({entryPoints:['scripts/calendar-vendor.mjs'],bundle:true,minify:true,format:'iife',platform:'browser',outfile:'public/calendar-vendor.js',legalComments:'none'});
+const assets={};for(const file of ['index.html','payroll.css','config.js','seed.js','art.js','qr-vendor.js','boarding.js','calendar.js','calendar-vendor.js','progress.js','app.js'])assets['/'+(file==='index.html'?'':file)]={body:fs.readFileSync('public/'+file,'utf8'),type:file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'text/javascript'};
+if(fs.existsSync('public/manuals'))for(const file of fs.readdirSync('public/manuals').filter(f=>/^(employee|admin)-[a-z0-9-]+\.png$/.test(f)))assets['/manuals/'+file]={body:fs.readFileSync('public/manuals/'+file).toString('base64'),type:'image/png',binary:true};
+assets['/templates/company-calendar.xlsx']={body:fs.readFileSync('public/templates/company-calendar.xlsx').toString('base64'),type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',binary:true};
+const source=`import {handleApi,canReadAdmin} from './server/api.mjs';const assets=${JSON.stringify(assets)};export default {async fetch(request,env){try{const path=new URL(request.url).pathname;if(path.startsWith('/api/'))return await handleApi(request,env);if(path.startsWith('/manuals/admin-')&&!await canReadAdmin(request,env))return new Response('Forbidden',{status:403});const asset=assets[path];if(!asset)return new Response('Not found',{status:404});return new Response(asset.binary?Uint8Array.from(atob(asset.body),c=>c.charCodeAt(0)):asset.body,{headers:{'content-type':asset.type+(asset.binary?'':'; charset=utf-8'),'cache-control':asset.binary?'private, no-store':'no-cache','x-content-type-options':'nosniff'}})}catch(error){console.error(error.message);return new Response(JSON.stringify({error:'服務暫時無法使用，請重試'}),{status:503,headers:{'content-type':'application/json'}})}}};`;
+fs.mkdirSync('dist/server',{recursive:true});fs.mkdirSync('dist/.openai',{recursive:true});
+await build({stdin:{contents:source,resolveDir:process.cwd(),sourcefile:'worker-entry.mjs'},bundle:true,platform:'browser',format:'esm',target:'es2022',outfile:'dist/server/index.js'});
+fs.writeFileSync('dist/.openai/hosting.json',JSON.stringify(manifest,null,2));console.log('Built Worker with validated action API and embedded assets');
