@@ -4,6 +4,7 @@ globalThis.CommuteConfig=(()=>{
  const policies={tai:{capacity:42,standard:{label:'一般',fare:70,cap:1300}},ban:{capacity:42,standard:{label:'一般',fare:70,cap:1300}},tao:{capacity:19,standard:{label:'一般',fare:45,cap:1000}},lin:{capacity:8,linkou:{label:'林口',fare:70,cap:1300},nankan:{label:'南崁',fare:45,cap:1000}}};
  const fail=m=>{throw Error(m)};
  function parts(now=new Date()){return {date:new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(now),time:new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Taipei',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(now)}}
+ function registrationPeriod(now=new Date()){const {date}=parts(now),[year,month,day]=date.split('-').map(Number),lastDay=month===2?new Date(Date.UTC(year,month,0)).getUTCDate():30,target=new Date(Date.UTC(year,month,1));return {month:target.toISOString().slice(0,7),start:date.slice(0,7)+'-25',end:date.slice(0,7)+'-'+lastDay,open:day>=25&&day<=lastDay}}
  function dateValid(d){return typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T12:00:00Z'))&&new Date(d+'T12:00:00Z').toISOString().slice(0,10)===d}
  const monthValid=m=>typeof m==='string'&&/^\d{4}-(0[1-9]|1[0-2])$/.test(m);
  const text=(x,max=300)=>typeof x==='string'&&x.trim().length>0&&x.length<=max&&!/[<>\x00-\x08]/.test(x);
@@ -24,5 +25,5 @@ globalThis.CommuteConfig=(()=>{
   const seen=new Set();for(const x of s.registrations){if(!employeeValid(x.employee)||!monthValid(x.month)||!ids.has(x.route))fail('報名資料不正確');policy(x.route,x.billingCategory,s);const k=[x.employee,x.month,x.route].join('|');if(seen.has(k))fail('同月份同路線不可重複報名');seen.add(k);if(registrationInfo(s,x.route,x.month).used>registrationInfo(s,x.route,x.month).capacity)fail('月度報名名額已滿')}
   const rides=new Set();for(const x of [...s.rides,...s.adjustments.filter(x=>x.status!=='rejected')]){if(!employeeValid(x.employee)||!dateValid(x.date)||!['go','back'].includes(x.dir)||!ids.has(x.route))fail('搭乘資料不正確');policy(x.route,x.billingCategory,s);if(rides.has(key(x)))fail('同一人、日期、路線與方向只能記錄一次');rides.add(key(x))}return s}
  function validateTransition(before,after){const old=normalizeState(before),next=normalizeState(after);validate(next);for(const k of ['monthly','tickets','checkins','alightings','releases','settlements','registrations','rides','adjustments','monthClosures','auditLog'])if(JSON.stringify(old[k])!==JSON.stringify(next[k]))fail('搭乘、報名、審核與結算只能由指定操作服務異動');return next}
- return {copy,parts,dateValid,monthValid,text,employeeValid,normalizeRoute,normalizeState,policies,policy,categories,active,key,occupied,monthLockReason,registrationInfo,bill,payroll,validate,validateTransition};
+ return {copy,parts,registrationPeriod,dateValid,monthValid,text,employeeValid,normalizeRoute,normalizeState,policies,policy,categories,active,key,occupied,monthLockReason,registrationInfo,bill,payroll,validate,validateTransition};
 })();
