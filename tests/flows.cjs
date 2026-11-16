@@ -5,7 +5,7 @@ for(const file of ['config.js','seed.js','art.js','boarding.js','calendar.js','p
 const run=code=>vm.runInContext(code,context),html=()=>nodes.get('#app').innerHTML;
 await run("enter('employee')");assert.match(html(),/月度報名/);assert.ok(!/月票申請|預約與購票|候補|更多/.test(html()));
 await run("action('register',{route:'tai',category:'standard'})");assert.equal(run('db.registrations.length'),1);
-run("page='registration';render()");assert.match(html(),/本月已報名/);assert.match(html(),/共用名額/);
+run("page='registration';render()");assert.match(html(),/本月已報名/);assert.match(html(),/共用名額/);assert.match(html(),/每人每月限報名一條路線/);assert.match(html(),/本月已報名其他路線/);assert.ok(!html().includes('registration-batch'));
 run("page='routes';render()");assert.match(html(),/捷運科技大樓站/);assert.ok(!/報名名額|購買|票種/.test(html()));
 const d=run('today()');await run(`mutate('adjustment',{date:'${d}',route:'lin',dir:'go',billingCategory:'nankan',reason:'忘記掃碼'})`);assert.equal(run('C.payroll(db,month).length'),0);
 run("page='adjustments';render()");assert.match(html(),/待審核/);

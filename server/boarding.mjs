@@ -33,13 +33,15 @@ export function resolveSharedScan(input,code,employee,now=new Date(),selection){
  if(prior)return {...base,route:prior.route,billingCategory:prior.billingCategory,duplicate:true,actions:[]};
  if(s.adjustments.some(x=>same(x)&&x.status!=='rejected'))throw Error('此方向已有待審／核准補登，不能重複掃碼');
  const regs=s.registrations.filter(x=>x.employee===employee&&x.month===month);
- if(regs.length>1)throw Error('本月有多條報名資料，計費規則待確認，請聯絡管理員；尚未登記或扣款');
- const chosen=regs[0]||selection;
- if(!chosen)return {...base,needsSelection:true,duplicate:false,options:s.routes.filter(r=>C.active(r,dir)).flatMap(r=>C.categories(r.id).map(billingCategory=>{const p=C.policy(r.id,billingCategory,s,month);return {route:r.id,routeName:r.name,billingCategory,categoryName:p.label,fare:p.fare,cap:p.cap}}))};
+ const option=x=>{const r=s.routes.find(r=>r.id===x.route),p=C.policy(x.route,x.billingCategory,s,month);return {route:x.route,routeName:r.name,billingCategory:x.billingCategory,categoryName:p.label,fare:p.fare,cap:p.cap}};
+ if(regs.length>1&&!selection)return {...base,needsSelection:true,selectionType:'registered',multipleRegistered:true,duplicate:false,options:regs.map(option)};
+ if(regs.length>1&&!regs.some(x=>x.route===selection.route&&x.billingCategory===selection.billingCategory))throw Error('請選擇本月已報名的路線與計費類別');
+ const chosen=regs.length===1?regs[0]:selection;
+ if(!chosen)return {...base,needsSelection:true,selectionType:'unregistered',duplicate:false,options:s.routes.filter(r=>C.active(r,dir)).flatMap(r=>C.categories(r.id).map(billingCategory=>{const p=C.policy(r.id,billingCategory,s,month);return {route:r.id,routeName:r.name,billingCategory,categoryName:p.label,fare:p.fare,cap:p.cap}}))};
  const r=s.routes.find(x=>x.id===chosen.route);if(!r||!C.active(r,dir)||s.closed.some(x=>x.route===r.id&&x.date===date&&x.dir===dir))throw Error('此方向班次未開行');
  const calendar=s.calendar.find(x=>x.date===date);if(calendar?calendar.type==='off':[0,6].includes(new Date(date+'T12:00Z').getUTCDay()))throw Error('今天依公司行事曆未開行');
  const p=C.policy(r.id,chosen.billingCategory,s,month);
- return {...base,route:r.id,routeName:r.name,billingCategory:chosen.billingCategory,categoryName:p.label,fare:p.fare,cap:p.cap,registered:!!regs.length,duplicate:false,actions:['board']};
+ return {...base,route:r.id,routeName:r.name,billingCategory:chosen.billingCategory,categoryName:p.label,fare:p.fare,cap:p.cap,registered:!!regs.length,multipleRegistered:regs.length>1,duplicate:false,actions:['board']};
 }
 export function applySharedConfirmation(input,body,now=new Date()){
  const state=C.normalizeState(input),context=resolveSharedScan(state,body.code,body.employee,now,body.selection);
